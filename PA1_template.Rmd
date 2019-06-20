@@ -1,25 +1,168 @@
----
-title: "Reproducible Research: Peer Assessment 1"
-output: 
-  html_document:
-    keep_md: true
----
+Reproducible Research
+============================
+
+*Course project 1*
 
 
-## Loading and preprocessing the data
+**Loading and preprocessing the data**
+1. Loading and preprocessing the data
+  
+  ```{r simulatedata}
+  data<-read.csv("C:/Users/Anant Sharma/Desktop/DATA SCIENCE/Reproducible Research/Course project 1/activity.csv")
+  ```
+  
+2. Processing the data:
+  ```{r processdata}
+  dim(data)
+  names(data)
+  str(data)
+  ```
 
+**What is mean total number of steps taken per day?**
 
+1. Total number of steps taken per day:
+  ```{r totalsteps}
+  q1<-data.frame(total.steps=tapply(data$steps,data$date,sum,na.rm=TRUE))
+  q1$date<-rownames(q1)
+  rownames(q1)<-NULL
+  q1
+  
+  ```
+  
+2. Histogram of the total number of steps taken each day:
+  ```{r histogram}
+  q2<-data.frame(sum=tapply(data$steps,data$date,sum,na.rm=TRUE))
+  q2$date<-rownames(q2)
+  rownames(q2)<-NULL
+  library(ggplot2)
+  g<-ggplot(q2,aes(x=date,y=sum))
+  png(file="plot1.png")
+  g+geom_bar(stat="identity")+xlab("date")+ylab("Total steps")+ggtitle("Total steps on every day")
+  dev.off()
+  g+geom_bar(stat="identity")+xlab("date")+ylab("Total steps")+ggtitle("Total steps on every day")
+  png(file="plot1.1.png")
+  hist(q2$sum,xlab="Total steps",ylab="Count",main="Total steps histogram",breaks=25)
+  dev.off()
+  hist(q2$sum,xlab="Total steps",ylab="Count",main="Total steps histogram",breaks=25)
+  
+  ```
+3. Mean and Median of the total number of steps taken per day:
+  ```{r mean}
+  q3<-data.frame(mean.steps=tapply(data$steps,data$date,mean))
+  q3$date<-rownames(q3)
+  rownames(q3)<-NULL
+  q3$median<-with(data,tapply(data$steps,data$date,median))
+  q3
+  ```
+**What is the average daily activity pattern?**
 
-## What is mean total number of steps taken per day?
+1. Time series plot of the average number of steps taken:
+  ```{r avgsteps}
+  q4<-data.frame(mean.steps=tapply(data$steps,data$date,mean,na.rm=TRUE))
+  q4$date<-rownames(q4)
+  library(lubridate)
+  q4$date<-ymd(q4$date)
+  rownames(q4)<-NULL
+  library(ggplot2)
+  g<-ggplot(q4,aes(x=date,y=mean.steps))
+  png(file="plot2.png")
+  g+geom_bar(stat="identity")+xlab("Date")+ylab("average steps")+ggtitle("Time series plot")
+  dev.off()
+  g+geom_bar(stat="identity")+xlab("Date")+ylab("average steps")+ggtitle("Time series plot")
+  ```
+  
+2. 5 minute interval that contains maximum steps on average:
+  ```{r maximum}
+  q5<-data.frame(mean=tapply(data$steps,data$interval,mean,na.rm=TRUE))
+  q5$interval<-rownames(q5)
+  rownames(q5)<-NULL
+  q5[max(q5$mean),2]
+  ```
+  
+**Imputing missing values**
 
+1. Total number of missing values:
+  ```{r missing}
+  sum(is.na(data$steps))
+  ```
 
-
-## What is the average daily activity pattern?
-
-
-
-## Imputing missing values
-
-
-
-## Are there differences in activity patterns between weekdays and weekends?
+2. Strategy for filling in all of the missing values in the dataset and creating a new dataset:
+  ```{r strat}
+  newdata<-data
+  newdata$steps[is.na(newdata$steps)]<-mean(newdata$steps,na.rm=TRUE)
+  ```
+3. Histogram of the total number of steps taken each day for new data:
+  ```{r newhist}
+  newsub<-data.frame(sum=tapply(newdata$steps,newdata$date,sum))
+  newsub$date<-rownames(newsub)
+  rownames(newsub)<-NULL
+  png(file="plot10.png")
+  hist(newsub$sum,xlab="Total steps",ylab="count",main="Total number of steps",breaks=25)
+  dev.off()
+  hist(newsub$sum,xlab="Total steps",ylab="count",main="Total number of steps",breaks=25)
+  ```
+  
+  
+  *The NA values which were not plotted before are now plotted and the graph is changed because of it.*
+  
+4. Mean and Median of total number of steps taken per day
+  ```{r mean2}
+  q6<-data.frame(mean.steps=tapply(newdata$steps,newdata$date,mean))
+  q6$date<-rownames(q6)
+  rownames(q6)<-NULL
+  q6$median<-with(newdata,tapply(newdata$steps,newdata$date,median))
+  q6
+  ```
+  
+  
+  *The mean and median differ in the both the date.*
+  
+  **Are there differences in activity patterns between weekdays and weekends?**
+  
+  1. Factor variable in the dataset with two levels – “weekday” and “weekend”:
+  ```{r week,echo=TRUE}
+    library(lubridate)
+    day<-weekdays(ymd(newdata$date))
+    logic<-day %in%  c("Friday","Monday","Thursday","Tuesday","Wednesday")
+    day[logic]<-"weekdays"
+    day[!logic]<-"weekends"
+    newdata$days<-day
+  ```
+  
+  2. Average number of steps taken graph:
+  ```{r graph}
+      sub1<-newdata[newdata$days=="weekdays",]
+      sub2<-newdata[newdata$days=="weekends",]
+      sub11<-data.frame(mean=tapply(sub1$steps,sub1$interval,mean))
+      sub11$interval<-rownames(sub11)
+      rownames(sub11)<-NULL
+      sub22<-data.frame(mean=tapply(sub2$steps,sub2$interval,mean))
+      sub22$interval<-rownames(sub22)
+      rownames(sub22)<-NULL
+      sub11<-sub11[c("interval","mean")]
+      sub22<-sub22[c("interval","mean")]
+      png(file="plot20.png")
+      plot(sub11,type="l",col="red",xlab="interval",ylab="avg steps",main="Average steps wrt to interval")
+      lines(sub22,col="blue")
+      legend("topleft",col=c("red","blue"),legend=c("weekdays","weekends"),lty=1:1,title="line type")
+      dev.off()
+      plot(sub11,type="l",col="red",xlab="interval",ylab="avg steps",main="Average steps wrt to interval")
+      lines(sub22,col="blue")
+      legend("topleft",col=c("red","blue"),legend=c("weekdays","weekends"),lty=1:1,title="line type")
+      
+  ```
+  
+  
+  3. Panel plot:
+  ```{r panel}
+      png(file="plot30.png")
+      par(mfrow=c(2,1))
+      plot(sub11,type="l",xlab="interval",ylab="avg steps",main="weekdays")
+      plot(sub22,type="l",xlab="interval",ylab="avg steps",main="weekends")
+      dev.off()
+      par(mfrow=c(2,1))
+      plot(sub11,type="l",xlab="interval",ylab="avg steps",main="weekdays")
+      plot(sub22,type="l",xlab="interval",ylab="avg steps",main="weekends")
+      
+  ```    
+  
